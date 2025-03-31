@@ -18,46 +18,49 @@ function App() {
   // Load initial batch of articles
   useEffect(() => {
     fetchArticles(true);
-  }, [articleSource]); // Reload when source changes
+  }, [articleSource, fetchArticles]); // Reload when source changes
 
   // Fetch articles from API
-  const fetchArticles = async (resetArticles: boolean = false) => {
-    try {
-      setLoading(true);
-      setError(null);
+  const fetchArticles = useCallback(
+    async (resetArticles: boolean = false) => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      // Use the new combined endpoint that supports both random and trending
-      const url = `/api/articles?source=${articleSource}&count=5${articleSource === 'random' ? '&requireThumbnail=true&minExtractLength=200' : ''}`;
-      const response = await fetch(url);
+        // Use the new combined endpoint that supports both random and trending
+        const url = `/api/articles?source=${articleSource}&count=5${articleSource === 'random' ? '&requireThumbnail=true&minExtractLength=200' : ''}`;
+        const response = await fetch(url);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (resetArticles) {
+          // Replace all articles and reset index when source changes
+          setArticles(data);
+          setCurrentIndex(0);
+        } else {
+          // Add new articles to the end of the list
+          setArticles((current) => [...current, ...data]);
+        }
+
+        // If this is initial load, set isInitialLoad to false
+        if (isInitialLoad) {
+          setIsInitialLoad(false);
+        }
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError(
+          err instanceof Error ? err.message : 'An unknown error occurred'
+        );
+      } finally {
+        setLoading(false);
       }
-
-      const data = await response.json();
-
-      if (resetArticles) {
-        // Replace all articles and reset index when source changes
-        setArticles(data);
-        setCurrentIndex(0);
-      } else {
-        // Add new articles to the end of the list
-        setArticles((current) => [...current, ...data]);
-      }
-
-      // If this is initial load, set isInitialLoad to false
-      if (isInitialLoad) {
-        setIsInitialLoad(false);
-      }
-    } catch (err) {
-      console.error('Error fetching data:', err);
-      setError(
-        err instanceof Error ? err.message : 'An unknown error occurred'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [articleSource, isInitialLoad]
+  );
 
   // Load more articles when we're 2 articles away from the end
   useEffect(() => {
@@ -68,7 +71,7 @@ function App() {
     ) {
       fetchArticles();
     }
-  }, [currentIndex, articles.length, loading]);
+  }, [currentIndex, articles.length, loading, fetchArticles]);
 
   // Handle navigation
   const goToNext = useCallback(() => {

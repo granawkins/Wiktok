@@ -23,7 +23,9 @@ const mockArticles: Article[] = [
   },
 ];
 
-const mockTrendingArticles: Article[] = [
+// Mock trending articles for future tests
+// Currently unused but kept for reference
+/* const mockTrendingArticles: Article[] = [
   {
     id: 3,
     title: 'Trending Test Article 1',
@@ -44,7 +46,7 @@ const mockTrendingArticles: Article[] = [
     views: 40000,
     rank: 2,
   },
-];
+]; */
 
 // Mock the fetch API
 globalThis.fetch = vi.fn() as unknown as typeof fetch;
