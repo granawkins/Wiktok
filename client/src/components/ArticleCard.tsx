@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Article } from '../types';
 
 interface ArticleCardProps {
@@ -8,9 +8,38 @@ interface ArticleCardProps {
 
 const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
   const [expanded, setExpanded] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
+
+  // Reset image load state when article changes
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageError(false);
+  }, [article.id]);
+
+  // Start loading image when component becomes active or visible
+  useEffect(() => {
+    if (isActive && article.thumbnail && imageRef.current) {
+      // If image is already in cache, it might be loaded immediately
+      if (imageRef.current.complete) {
+        setImageLoaded(true);
+      }
+    }
+  }, [isActive, article.thumbnail]);
 
   const toggleExpanded = () => {
     setExpanded(!expanded);
+  };
+
+  const handleImageLoad = () => {
+    console.log(`Image loaded for article: ${article.title}`);
+    setImageLoaded(true);
+  };
+
+  const handleImageError = () => {
+    console.error(`Failed to load image for article: ${article.title}`);
+    setImageError(true);
   };
 
   const extractPreview =
@@ -33,7 +62,7 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
         transition: 'opacity 0.3s ease-in-out',
       }}
     >
-      {/* Background image (no gradient overlay) */}
+      {/* Background image with lazy loading and placeholder */}
       {article.thumbnail && (
         <div
           style={{
@@ -47,13 +76,46 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
             overflow: 'hidden', // Ensure content stays within bounds
           }}
         >
+          {/* Placeholder with shimmer effect while image loads */}
+          {!imageLoaded && !imageError && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                background:
+                  'linear-gradient(90deg, #1e1e1e 25%, #2a2a2a 50%, #1e1e1e 75%)',
+                backgroundSize: '200% 100%',
+                animation: 'shimmer 1.5s infinite',
+                opacity: 0.7,
+              }}
+            />
+          )}
+          <style>
+            {`
+              @keyframes shimmer {
+                0% { background-position: -200% 0; }
+                100% { background-position: 200% 0; }
+              }
+            `}
+          </style>
+
+          {/* Actual image */}
           <img
+            ref={imageRef}
             src={article.thumbnail}
             alt={article.title}
+            loading={isActive ? 'eager' : 'lazy'} // Use eager loading for active card
+            onLoad={handleImageLoad}
+            onError={handleImageError}
             style={{
               width: '100%',
               height: '100%',
               objectFit: 'contain', // Fill entire container while maintaining aspect ratio
+              opacity: imageLoaded ? 1 : 0,
+              transition: 'opacity 0.3s ease-in-out',
             }}
           />
         </div>
