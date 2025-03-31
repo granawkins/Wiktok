@@ -24,7 +24,9 @@ const mockArticles: Article[] = [
 // Mock the fetch API
 globalThis.fetch = vi.fn() as unknown as typeof fetch;
 
-function mockFetchResponse(data: Article[] | { error: string; message: string }) {
+function mockFetchResponse(
+  data: Article[] | { error: string; message: string }
+) {
   return {
     json: vi.fn().mockResolvedValue(data),
     ok: true,
