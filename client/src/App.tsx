@@ -31,10 +31,10 @@ function App() {
       }
 
       const data = await response.json();
-      
+
       // Add new articles to the end of the list
-      setArticles(current => [...current, ...data]);
-      
+      setArticles((current) => [...current, ...data]);
+
       // If this is initial load, set isInitialLoad to false
       if (isInitialLoad) {
         setIsInitialLoad(false);
@@ -51,7 +51,11 @@ function App() {
 
   // Load more articles when we're 2 articles away from the end
   useEffect(() => {
-    if (currentIndex >= articles.length - 2 && !loading && articles.length > 0) {
+    if (
+      currentIndex >= articles.length - 2 &&
+      !loading &&
+      articles.length > 0
+    ) {
       fetchArticles();
     }
   }, [currentIndex, articles.length, loading]);
@@ -97,29 +101,29 @@ function App() {
     const handleWheel = (e: WheelEvent) => {
       // Prevent default scrolling behavior
       e.preventDefault();
-      
+
       // Clear any existing timeout
       if (scrollTimeoutRef.current !== null) {
         window.clearTimeout(scrollTimeoutRef.current);
       }
-      
+
       // Debounce scroll events to prevent rapid navigation
       scrollTimeoutRef.current = window.setTimeout(() => {
         // deltaY > 0 means scrolling down
         if (e.deltaY > 0) {
           goToNext();
-        } 
+        }
         // deltaY < 0 means scrolling up
         else if (e.deltaY < 0) {
           goToPrevious();
         }
-        
+
         scrollTimeoutRef.current = null;
       }, 100); // 100ms debounce time
     };
-    
+
     window.addEventListener('wheel', handleWheel, { passive: false });
-    
+
     return () => {
       window.removeEventListener('wheel', handleWheel);
       // Clear any existing timeout on component unmount
@@ -131,19 +135,21 @@ function App() {
 
   if (error) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        flexDirection: 'column',
-        padding: '20px',
-        textAlign: 'center',
-        background: '#111'
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          flexDirection: 'column',
+          padding: '20px',
+          textAlign: 'center',
+          background: '#111',
+        }}
+      >
         <h2 style={{ color: '#f44336', marginBottom: '20px' }}>Error</h2>
         <p style={{ color: 'white', marginBottom: '20px' }}>{error}</p>
-        <button 
+        <button
           onClick={fetchArticles}
           style={{
             background: '#f44336',
@@ -161,11 +167,11 @@ function App() {
   }
 
   return (
-    <div 
+    <div
       {...handlers}
-      style={{ 
-        height: '100vh', 
-        width: '100vw', 
+      style={{
+        height: '100vh',
+        width: '100vw',
         overflow: 'hidden',
         background: '#000',
         position: 'relative',
@@ -197,7 +203,10 @@ function App() {
                   backgroundColor: '#000',
                 }}
               >
-                <ArticleCard article={article} isActive={currentIndex === index} />
+                <ArticleCard
+                  article={article}
+                  isActive={currentIndex === index}
+                />
               </div>
             ))}
           </div>
@@ -212,17 +221,19 @@ function App() {
 
           {/* Loading indicator for subsequent loads */}
           {!isInitialLoad && loading && (
-            <div style={{ 
-              position: 'fixed', 
-              bottom: '20px', 
-              left: '50%', 
-              transform: 'translateX(-50%)',
-              background: 'rgba(0, 0, 0, 0.7)',
-              padding: '10px 20px',
-              borderRadius: '20px',
-              color: 'white',
-              zIndex: 100,
-            }}>
+            <div
+              style={{
+                position: 'fixed',
+                bottom: '20px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(0, 0, 0, 0.7)',
+                padding: '10px 20px',
+                borderRadius: '20px',
+                color: 'white',
+                zIndex: 100,
+              }}
+            >
               Loading more articles...
             </div>
           )}
@@ -230,14 +241,15 @@ function App() {
       )}
 
       {/* App header */}
-      <header 
+      <header
         style={{
           position: 'fixed',
           top: 0,
           left: 0,
           width: '100%',
           padding: '15px 20px',
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)',
+          background:
+            'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)',
           zIndex: 10,
           display: 'flex',
           justifyContent: 'center',

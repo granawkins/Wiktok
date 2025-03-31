@@ -57,7 +57,7 @@ export const getRandomArticle = async (): Promise<Article> => {
     }
 
     const randomArticle = randomResponse.data.query.random[0];
-    
+
     // Then get the content of that article
     const contentResponse = await axios.get<WikipediaResponse>(API_BASE_URL, {
       params: {
@@ -88,7 +88,9 @@ export const getRandomArticle = async (): Promise<Article> => {
       title: page.title,
       extract: page.extract || 'No extract available',
       thumbnail: page.thumbnail?.source || null,
-      url: page.fullurl || `https://en.wikipedia.org/wiki/${encodeURIComponent(page.title)}`,
+      url:
+        page.fullurl ||
+        `https://en.wikipedia.org/wiki/${encodeURIComponent(page.title)}`,
     };
   } catch (error) {
     console.error('Error fetching Wikipedia article:', error);
@@ -99,17 +101,19 @@ export const getRandomArticle = async (): Promise<Article> => {
 /**
  * Get multiple random Wikipedia articles
  */
-export const getRandomArticles = async (count: number = 5): Promise<Article[]> => {
+export const getRandomArticles = async (
+  count: number = 5
+): Promise<Article[]> => {
   try {
     const articles: Article[] = [];
-    
+
     // For simplicity, we'll make sequential requests
     // In a production app, these could be parallelized for better performance
     for (let i = 0; i < count; i++) {
       const article = await getRandomArticle();
       articles.push(article);
     }
-    
+
     return articles;
   } catch (error) {
     console.error('Error fetching multiple Wikipedia articles:', error);

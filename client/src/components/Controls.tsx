@@ -39,7 +39,7 @@ const Controls = ({
     margin: '10px',
     transition: 'background-color 0.2s',
     opacity: isLoading ? 0.5 : 1,
-    pointerEvents: isLoading ? 'none' as const : 'auto' as const,
+    pointerEvents: isLoading ? ('none' as const) : ('auto' as const),
   };
 
   return (
