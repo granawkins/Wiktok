@@ -33,21 +33,7 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
         transition: 'opacity 0.3s ease-in-out',
       }}
     >
-      {/* Gradient overlay to make text more readable */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          background:
-            'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.3) 100%)',
-          zIndex: 1,
-        }}
-      />
-
-      {/* Background image */}
+      {/* Background image (no gradient overlay) */}
       {article.thumbnail && (
         <div
           style={{
@@ -71,14 +57,18 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
         </div>
       )}
 
-      {/* Content */}
+      {/* Content with its own background for readability */}
       <div
         style={{
           position: 'relative',
           zIndex: 2,
           padding: '20px',
           overflow: 'auto',
-          maxHeight: '70%',
+          maxHeight: expanded ? '80%' : '70%',
+          background:
+            'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.5) 100%)',
+          borderRadius: '10px 10px 0 0',
+          transition: 'max-height 0.3s ease-in-out, padding 0.3s ease-in-out',
         }}
       >
         <h2 style={{ marginBottom: '10px', fontSize: '24px' }}>

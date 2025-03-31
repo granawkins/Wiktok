@@ -158,7 +158,6 @@ export const getRandomArticles = async (
         `Could only find ${articles.length} articles with images out of ${count} requested`
       );
     }
-
     return articles;
   } catch (error) {
     console.error('Error fetching multiple Wikipedia articles:', error);
