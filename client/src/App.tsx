@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSwipeable } from 'react-swipeable';
-import { Article } from './types';
+import { Article, ArticleSource } from './types';
 import ArticleCard from './components/ArticleCard';
 import Controls from './components/Controls';
 import LoadingIndicator from './components/LoadingIndicator';
+import SourceToggle from './components/SourceToggle';
 
 function App() {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -11,43 +12,55 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [articleSource, setArticleSource] = useState<ArticleSource>('random');
   const scrollTimeoutRef = useRef<number | null>(null);
+
+  // Fetch articles from API
+  const fetchArticles = useCallback(
+    async (resetArticles: boolean = false) => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Use the new combined endpoint that supports both random and trending
+        const url = `/api/articles?source=${articleSource}&count=5${articleSource === 'random' ? '&requireThumbnail=true&minExtractLength=200' : ''}`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (resetArticles) {
+          // Replace all articles and reset index when source changes
+          setArticles(data);
+          setCurrentIndex(0);
+        } else {
+          // Add new articles to the end of the list
+          setArticles((current) => [...current, ...data]);
+        }
+
+        // If this is initial load, set isInitialLoad to false
+        if (isInitialLoad) {
+          setIsInitialLoad(false);
+        }
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError(
+          err instanceof Error ? err.message : 'An unknown error occurred'
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [articleSource, isInitialLoad]
+  );
 
   // Load initial batch of articles
   useEffect(() => {
-    fetchArticles();
-  }, []);
-
-  // Fetch articles from API
-  const fetchArticles = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch('/api/random/batch?count=5');
-
-      if (!response.ok) {
-        throw new Error(`HTTP error ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      // Add new articles to the end of the list
-      setArticles((current) => [...current, ...data]);
-
-      // If this is initial load, set isInitialLoad to false
-      if (isInitialLoad) {
-        setIsInitialLoad(false);
-      }
-    } catch (err) {
-      console.error('Error fetching data:', err);
-      setError(
-        err instanceof Error ? err.message : 'An unknown error occurred'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchArticles(true);
+  }, [articleSource, fetchArticles]); // Reload when source changes
 
   // Load more articles when we're 2 articles away from the end
   useEffect(() => {
@@ -58,7 +71,7 @@ function App() {
     ) {
       fetchArticles();
     }
-  }, [currentIndex, articles.length, loading]);
+  }, [currentIndex, articles.length, loading, fetchArticles]);
 
   // Handle navigation
   const goToNext = useCallback(() => {
@@ -72,6 +85,11 @@ function App() {
       setCurrentIndex(currentIndex - 1);
     }
   }, [currentIndex]);
+
+  // Handle source toggle
+  const toggleSource = useCallback(() => {
+    setArticleSource((prev) => (prev === 'random' ? 'trending' : 'random'));
+  }, []);
 
   // Swipe handlers
   const handlers = useSwipeable({
@@ -87,6 +105,8 @@ function App() {
         goToNext();
       } else if (e.key === 'ArrowUp' || e.key === 'k') {
         goToPrevious();
+      } else if (e.key === 't') {
+        toggleSource();
       }
     };
 
@@ -94,7 +114,7 @@ function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [goToNext, goToPrevious]);
+  }, [goToNext, goToPrevious, toggleSource]);
 
   // Handle mouse wheel scrolling
   useEffect(() => {
@@ -150,7 +170,7 @@ function App() {
         <h2 style={{ color: '#f44336', marginBottom: '20px' }}>Error</h2>
         <p style={{ color: 'white', marginBottom: '20px' }}>{error}</p>
         <button
-          onClick={fetchArticles}
+          onClick={() => fetchArticles(true)}
           style={{
             background: '#f44336',
             color: 'white',
@@ -217,6 +237,13 @@ function App() {
             hasNext={currentIndex < articles.length - 1}
             hasPrevious={currentIndex > 0}
             isLoading={loading}
+          />
+
+          {/* Source toggle button */}
+          <SourceToggle
+            currentSource={articleSource}
+            onToggle={toggleSource}
+            disabled={loading}
           />
 
           {/* Loading indicator for subsequent loads */}

@@ -18,6 +18,9 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
       ? `${article.extract.substring(0, 300)}...`
       : article.extract;
 
+  // Handle source with default value for backward compatibility
+  const source = article.source || 'random';
+
   // Badge colors based on article source
   const badgeColors = {
     trending: {
@@ -97,17 +100,18 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
           fontSize: '12px',
           fontWeight: 'bold',
           textTransform: 'uppercase',
-          background: badgeColors[article.source].background,
-          color: badgeColors[article.source].text,
+          background:
+            badgeColors[source as keyof typeof badgeColors].background,
+          color: badgeColors[source as keyof typeof badgeColors].text,
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
         }}
       >
-        {article.source === 'trending' ? (
+        {source === 'trending' ? (
           <>
             <span>🔥 Trending</span>
-            {article.rank && (
+            {article.rank !== undefined && (
               <span style={{ fontSize: '10px' }}>#{article.rank}</span>
             )}
           </>
@@ -135,7 +139,7 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
         </h2>
 
         {/* Views counter for trending articles */}
-        {article.views && article.source === 'trending' && (
+        {article.views !== undefined && source === 'trending' && (
           <div
             style={{
               fontSize: '14px',
