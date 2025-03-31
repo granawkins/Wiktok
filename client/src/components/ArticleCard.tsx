@@ -13,9 +13,10 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
     setExpanded(!expanded);
   };
 
-  const extractPreview = article.extract.length > 300 && !expanded
-    ? `${article.extract.substring(0, 300)}...`
-    : article.extract;
+  const extractPreview =
+    article.extract.length > 300 && !expanded
+      ? `${article.extract.substring(0, 300)}...`
+      : article.extract;
 
   return (
     <div
@@ -40,7 +41,8 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
           left: 0,
           width: '100%',
           height: '100%',
-          background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.3) 100%)',
+          background:
+            'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.3) 100%)',
           zIndex: 1,
         }}
       />
@@ -55,15 +57,19 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
             width: '100%',
             height: '100%',
             zIndex: 0,
+            backgroundColor: '#000', // Dark background for areas not covered by image
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
         >
           <img
             src={article.thumbnail}
             alt={article.title}
             style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
+              maxWidth: '100%',
+              maxHeight: '100%',
+              objectFit: 'contain', // Changed from 'cover' to 'contain' to show full image
             }}
           />
         </div>
@@ -79,9 +85,11 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
           maxHeight: '70%',
         }}
       >
-        <h2 style={{ marginBottom: '10px', fontSize: '24px' }}>{article.title}</h2>
+        <h2 style={{ marginBottom: '10px', fontSize: '24px' }}>
+          {article.title}
+        </h2>
         <p style={{ fontSize: '16px', lineHeight: '1.5' }}>{extractPreview}</p>
-        
+
         {article.extract.length > 300 && (
           <button
             onClick={toggleExpanded}
@@ -97,7 +105,7 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
             {expanded ? 'Show less' : 'Read more'}
           </button>
         )}
-        
+
         <div style={{ marginTop: '15px' }}>
           <a
             href={article.url}

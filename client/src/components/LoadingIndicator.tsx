@@ -31,7 +31,9 @@ const LoadingIndicator = () => {
           }
         `}
       </style>
-      <p style={{ marginTop: '10px', fontSize: '16px' }}>Loading Wikipedia articles...</p>
+      <p style={{ marginTop: '10px', fontSize: '16px' }}>
+        Loading Wikipedia articles...
+      </p>
     </div>
   );
 };
