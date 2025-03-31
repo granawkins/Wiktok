@@ -11,6 +11,7 @@ const mockArticles: Article[] = [
     extract: 'This is the first test article content',
     thumbnail: 'https://example.com/image1.jpg',
     url: 'https://en.wikipedia.org/wiki/Test_Article_1',
+    source: 'random',
   },
   {
     id: 2,
@@ -18,13 +19,39 @@ const mockArticles: Article[] = [
     extract: 'This is the second test article content',
     thumbnail: null,
     url: 'https://en.wikipedia.org/wiki/Test_Article_2',
+    source: 'random',
+  },
+];
+
+const mockTrendingArticles: Article[] = [
+  {
+    id: 3,
+    title: 'Trending Test Article 1',
+    extract: 'This is a trending article content',
+    thumbnail: 'https://example.com/trending1.jpg',
+    url: 'https://en.wikipedia.org/wiki/Trending_Test_Article_1',
+    source: 'trending',
+    views: 50000,
+    rank: 1,
+  },
+  {
+    id: 4,
+    title: 'Trending Test Article 2',
+    extract: 'This is another trending article content',
+    thumbnail: 'https://example.com/trending2.jpg',
+    url: 'https://en.wikipedia.org/wiki/Trending_Test_Article_2',
+    source: 'trending',
+    views: 40000,
+    rank: 2,
   },
 ];
 
 // Mock the fetch API
 globalThis.fetch = vi.fn() as unknown as typeof fetch;
 
-function mockFetchResponse(data: Article[] | { error: string; message: string }) {
+function mockFetchResponse(
+  data: Article[] | { error: string; message: string }
+) {
   return {
     json: vi.fn().mockResolvedValue(data),
     ok: true,
@@ -56,7 +83,17 @@ describe('App Component', () => {
       expect(screen.getByText('Test Article 1')).toBeInTheDocument();
     });
 
-    expect(globalThis.fetch).toHaveBeenCalledWith('/api/random/batch?count=5');
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/api/articles?source=random&count=5&requireThumbnail=true&minExtractLength=200'
+    );
+  });
+
+  it('displays source toggle button', async () => {
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Discover')).toBeInTheDocument();
+    });
   });
 
   it('handles API error', async () => {

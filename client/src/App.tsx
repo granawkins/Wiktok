@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSwipeable } from 'react-swipeable';
-import { Article } from './types';
+import { Article, ArticleSource } from './types';
 import ArticleCard from './components/ArticleCard';
 import Controls from './components/Controls';
 import LoadingIndicator from './components/LoadingIndicator';
+import SourceToggle from './components/SourceToggle';
 
 function App() {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -11,30 +12,39 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [articleSource, setArticleSource] = useState<ArticleSource>('random');
   const scrollTimeoutRef = useRef<number | null>(null);
 
   // Load initial batch of articles
   useEffect(() => {
-    fetchArticles();
-  }, []);
+    fetchArticles(true);
+  }, [articleSource]); // Reload when source changes
 
   // Fetch articles from API
-  const fetchArticles = async () => {
+  const fetchArticles = async (resetArticles: boolean = false) => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/random/batch?count=5');
+      // Use the new combined endpoint that supports both random and trending
+      const url = `/api/articles?source=${articleSource}&count=5${articleSource === 'random' ? '&requireThumbnail=true&minExtractLength=200' : ''}`;
+      const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status}`);
       }
 
       const data = await response.json();
-      
-      // Add new articles to the end of the list
-      setArticles(current => [...current, ...data]);
-      
+
+      if (resetArticles) {
+        // Replace all articles and reset index when source changes
+        setArticles(data);
+        setCurrentIndex(0);
+      } else {
+        // Add new articles to the end of the list
+        setArticles((current) => [...current, ...data]);
+      }
+
       // If this is initial load, set isInitialLoad to false
       if (isInitialLoad) {
         setIsInitialLoad(false);
@@ -51,7 +61,11 @@ function App() {
 
   // Load more articles when we're 2 articles away from the end
   useEffect(() => {
-    if (currentIndex >= articles.length - 2 && !loading && articles.length > 0) {
+    if (
+      currentIndex >= articles.length - 2 &&
+      !loading &&
+      articles.length > 0
+    ) {
       fetchArticles();
     }
   }, [currentIndex, articles.length, loading]);
@@ -69,6 +83,11 @@ function App() {
     }
   }, [currentIndex]);
 
+  // Handle source toggle
+  const toggleSource = useCallback(() => {
+    setArticleSource((prev) => (prev === 'random' ? 'trending' : 'random'));
+  }, []);
+
   // Swipe handlers
   const handlers = useSwipeable({
     onSwipedUp: goToNext,
@@ -83,6 +102,8 @@ function App() {
         goToNext();
       } else if (e.key === 'ArrowUp' || e.key === 'k') {
         goToPrevious();
+      } else if (e.key === 't') {
+        toggleSource();
       }
     };
 
@@ -90,36 +111,36 @@ function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [goToNext, goToPrevious]);
+  }, [goToNext, goToPrevious, toggleSource]);
 
   // Handle mouse wheel scrolling
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       // Prevent default scrolling behavior
       e.preventDefault();
-      
+
       // Clear any existing timeout
       if (scrollTimeoutRef.current !== null) {
         window.clearTimeout(scrollTimeoutRef.current);
       }
-      
+
       // Debounce scroll events to prevent rapid navigation
       scrollTimeoutRef.current = window.setTimeout(() => {
         // deltaY > 0 means scrolling down
         if (e.deltaY > 0) {
           goToNext();
-        } 
+        }
         // deltaY < 0 means scrolling up
         else if (e.deltaY < 0) {
           goToPrevious();
         }
-        
+
         scrollTimeoutRef.current = null;
       }, 100); // 100ms debounce time
     };
-    
+
     window.addEventListener('wheel', handleWheel, { passive: false });
-    
+
     return () => {
       window.removeEventListener('wheel', handleWheel);
       // Clear any existing timeout on component unmount
@@ -131,20 +152,22 @@ function App() {
 
   if (error) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        flexDirection: 'column',
-        padding: '20px',
-        textAlign: 'center',
-        background: '#111'
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          flexDirection: 'column',
+          padding: '20px',
+          textAlign: 'center',
+          background: '#111',
+        }}
+      >
         <h2 style={{ color: '#f44336', marginBottom: '20px' }}>Error</h2>
         <p style={{ color: 'white', marginBottom: '20px' }}>{error}</p>
-        <button 
-          onClick={fetchArticles}
+        <button
+          onClick={() => fetchArticles(true)}
           style={{
             background: '#f44336',
             color: 'white',
@@ -161,11 +184,11 @@ function App() {
   }
 
   return (
-    <div 
+    <div
       {...handlers}
-      style={{ 
-        height: '100vh', 
-        width: '100vw', 
+      style={{
+        height: '100vh',
+        width: '100vw',
         overflow: 'hidden',
         background: '#000',
         position: 'relative',
@@ -197,7 +220,10 @@ function App() {
                   backgroundColor: '#000',
                 }}
               >
-                <ArticleCard article={article} isActive={currentIndex === index} />
+                <ArticleCard
+                  article={article}
+                  isActive={currentIndex === index}
+                />
               </div>
             ))}
           </div>
@@ -210,19 +236,28 @@ function App() {
             isLoading={loading}
           />
 
+          {/* Source toggle button */}
+          <SourceToggle
+            currentSource={articleSource}
+            onToggle={toggleSource}
+            disabled={loading}
+          />
+
           {/* Loading indicator for subsequent loads */}
           {!isInitialLoad && loading && (
-            <div style={{ 
-              position: 'fixed', 
-              bottom: '20px', 
-              left: '50%', 
-              transform: 'translateX(-50%)',
-              background: 'rgba(0, 0, 0, 0.7)',
-              padding: '10px 20px',
-              borderRadius: '20px',
-              color: 'white',
-              zIndex: 100,
-            }}>
+            <div
+              style={{
+                position: 'fixed',
+                bottom: '20px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(0, 0, 0, 0.7)',
+                padding: '10px 20px',
+                borderRadius: '20px',
+                color: 'white',
+                zIndex: 100,
+              }}
+            >
               Loading more articles...
             </div>
           )}
@@ -230,14 +265,15 @@ function App() {
       )}
 
       {/* App header */}
-      <header 
+      <header
         style={{
           position: 'fixed',
           top: 0,
           left: 0,
           width: '100%',
           padding: '15px 20px',
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)',
+          background:
+            'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)',
           zIndex: 10,
           display: 'flex',
           justifyContent: 'center',

@@ -13,9 +13,22 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
     setExpanded(!expanded);
   };
 
-  const extractPreview = article.extract.length > 300 && !expanded
-    ? `${article.extract.substring(0, 300)}...`
-    : article.extract;
+  const extractPreview =
+    article.extract.length > 300 && !expanded
+      ? `${article.extract.substring(0, 300)}...`
+      : article.extract;
+
+  // Badge colors based on article source
+  const badgeColors = {
+    trending: {
+      background: 'rgba(255, 64, 129, 0.8)',
+      text: 'white',
+    },
+    random: {
+      background: 'rgba(33, 150, 243, 0.8)',
+      text: 'white',
+    },
+  };
 
   return (
     <div
@@ -40,7 +53,8 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
           left: 0,
           width: '100%',
           height: '100%',
-          background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.3) 100%)',
+          background:
+            'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.3) 100%)',
           zIndex: 1,
         }}
       />
@@ -69,6 +83,37 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
         </div>
       )}
 
+      {/* Source badge (trending/random) */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '15px',
+          right: '15px',
+          zIndex: 3,
+          padding: '4px 12px',
+          borderRadius: '16px',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          textTransform: 'uppercase',
+          background: badgeColors[article.source].background,
+          color: badgeColors[article.source].text,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+        }}
+      >
+        {article.source === 'trending' ? (
+          <>
+            <span>🔥 Trending</span>
+            {article.rank && (
+              <span style={{ fontSize: '10px' }}>#{article.rank}</span>
+            )}
+          </>
+        ) : (
+          <>✨ Discover</>
+        )}
+      </div>
+
       {/* Content */}
       <div
         style={{
@@ -79,9 +124,29 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
           maxHeight: '70%',
         }}
       >
-        <h2 style={{ marginBottom: '10px', fontSize: '24px' }}>{article.title}</h2>
+        <h2 style={{ marginBottom: '10px', fontSize: '24px' }}>
+          {article.title}
+        </h2>
+
+        {/* Views counter for trending articles */}
+        {article.views && article.source === 'trending' && (
+          <div
+            style={{
+              fontSize: '14px',
+              color: 'rgba(255, 255, 255, 0.7)',
+              marginBottom: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+            }}
+          >
+            <span>👁️</span>
+            <span>{article.views.toLocaleString()} views yesterday</span>
+          </div>
+        )}
+
         <p style={{ fontSize: '16px', lineHeight: '1.5' }}>{extractPreview}</p>
-        
+
         {article.extract.length > 300 && (
           <button
             onClick={toggleExpanded}
@@ -97,7 +162,7 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
             {expanded ? 'Show less' : 'Read more'}
           </button>
         )}
-        
+
         <div style={{ marginTop: '15px' }}>
           <a
             href={article.url}
