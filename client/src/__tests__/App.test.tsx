@@ -1,16 +1,30 @@
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import App from '../App';
+import { Article } from '../types';
 
-// Define types
-type ApiResponse = {
-  message: string;
-};
+// Define mock articles for testing
+const mockArticles: Article[] = [
+  {
+    id: 1,
+    title: 'Test Article 1',
+    extract: 'This is the first test article content',
+    thumbnail: 'https://example.com/image1.jpg',
+    url: 'https://en.wikipedia.org/wiki/Test_Article_1',
+  },
+  {
+    id: 2,
+    title: 'Test Article 2',
+    extract: 'This is the second test article content',
+    thumbnail: null,
+    url: 'https://en.wikipedia.org/wiki/Test_Article_2',
+  },
+];
 
 // Mock the fetch API
 globalThis.fetch = vi.fn() as unknown as typeof fetch;
 
-function mockFetchResponse(data: ApiResponse) {
+function mockFetchResponse(data: Article[] | { error: string; message: string }) {
   return {
     json: vi.fn().mockResolvedValue(data),
     ok: true,
@@ -22,32 +36,27 @@ describe('App Component', () => {
     vi.clearAllMocks();
     // Default mock implementation
     (globalThis.fetch as unknown as Mock).mockResolvedValue(
-      mockFetchResponse({ message: 'Test Message from API' })
+      mockFetchResponse(mockArticles)
     );
   });
 
-  it('renders App component correctly', () => {
+  it('renders WikTok app header correctly', () => {
     render(<App />);
-    expect(screen.getByText('Mentat Template JS')).toBeInTheDocument();
-    expect(screen.getByText(/Frontend: React, Vite/)).toBeInTheDocument();
-    expect(screen.getByText(/Backend: Node.js, Express/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Utilities: Typescript, ESLint, Prettier/)
-    ).toBeInTheDocument();
+    expect(screen.getByText('WikTok')).toBeInTheDocument();
   });
 
-  it('loads and displays API message', async () => {
+  it('shows loading indicator initially', async () => {
     render(<App />);
 
     // Should initially show loading message
-    expect(screen.getByText(/Loading message from server/)).toBeInTheDocument();
+    expect(screen.getByText(/Loading Wikipedia articles/)).toBeInTheDocument();
 
-    // Wait for the fetch to resolve and check if the message is displayed
+    // Wait for the fetch to resolve and check if the first article is displayed
     await waitFor(() => {
-      expect(screen.getByText('Test Message from API')).toBeInTheDocument();
+      expect(screen.getByText('Test Article 1')).toBeInTheDocument();
     });
 
-    expect(globalThis.fetch).toHaveBeenCalledWith('/api');
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/random/batch?count=5');
   });
 
   it('handles API error', async () => {
@@ -60,7 +69,9 @@ describe('App Component', () => {
 
     // Wait for the error message to appear
     await waitFor(() => {
-      expect(screen.getByText(/Error: API Error/)).toBeInTheDocument();
+      expect(screen.getByText('Error')).toBeInTheDocument();
+      expect(screen.getByText('API Error')).toBeInTheDocument();
+      expect(screen.getByText('Try Again')).toBeInTheDocument();
     });
   });
 });
