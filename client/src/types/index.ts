@@ -4,4 +4,5 @@ export interface Article {
   extract: string;
   thumbnail: string | null;
   url: string;
+  isLiked?: boolean;
 }
