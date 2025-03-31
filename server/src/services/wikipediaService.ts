@@ -36,35 +36,48 @@ export interface Article {
 const API_BASE_URL = 'https://en.wikipedia.org/w/api.php';
 
 /**
- * Get a random Wikipedia article
+ * Get random Wikipedia articles in a single batch request
+ * This is much more efficient than multiple individual requests
  */
-export const getRandomArticle = async (): Promise<Article> => {
+export const getRandomArticlesBatch = async (
+  count: number = 5
+): Promise<Article[]> => {
   try {
-    // First get a random article title
+    console.time('batchFetch'); // For timing the request
+
+    // Step 1: Get a batch of random article titles and IDs
+    // Request more than needed to filter for ones with images
+    const randomBatchSize = count * 2;
     const randomResponse = await axios.get<WikipediaResponse>(API_BASE_URL, {
       params: {
         action: 'query',
         format: 'json',
         list: 'random',
-        rnnamespace: 0, // Only get articles from the main namespace
-        rnlimit: 1,
+        rnnamespace: 0, // Only articles from main namespace
+        rnlimit: randomBatchSize,
         origin: '*', // Required for CORS
       },
     });
 
-    if (!randomResponse.data.query?.random?.[0]) {
-      throw new Error('Failed to get random article');
+    if (
+      !randomResponse.data.query?.random ||
+      randomResponse.data.query.random.length === 0
+    ) {
+      throw new Error('Failed to get random articles');
     }
 
-    const randomArticle = randomResponse.data.query.random[0];
+    const randomArticles = randomResponse.data.query.random;
 
-    // Then get the content of that article
+    // Step 2: Get content for all random articles in a single request
+    // Using pipe-separated list of page IDs
+    const pageIds = randomArticles.map((article) => article.id).join('|');
+
     const contentResponse = await axios.get<WikipediaResponse>(API_BASE_URL, {
       params: {
         action: 'query',
         format: 'json',
         prop: 'extracts|pageimages|info',
-        pageids: randomArticle.id,
+        pageids: pageIds,
         explaintext: 1,
         exintro: 1, // Only get the intro section
         piprop: 'thumbnail',
@@ -79,85 +92,95 @@ export const getRandomArticle = async (): Promise<Article> => {
       throw new Error('Failed to get article content');
     }
 
-    const pageId = Object.keys(pages)[0];
-    const page = pages[pageId];
+    // Process all pages and convert to our Article format
+    const articles: Article[] = [];
 
-    // Format the response in our simplified Article format
-    return {
-      id: page.pageid,
-      title: page.title,
-      extract: page.extract || 'No extract available',
-      thumbnail: page.thumbnail?.source || null,
-      url:
-        page.fullurl ||
-        `https://en.wikipedia.org/wiki/${encodeURIComponent(page.title)}`,
-    };
+    for (const pageId in pages) {
+      const page = pages[pageId];
+
+      // Only include articles with thumbnails/images
+      if (page.thumbnail?.source) {
+        articles.push({
+          id: page.pageid,
+          title: page.title,
+          extract: page.extract || 'No extract available',
+          thumbnail: page.thumbnail.source,
+          url:
+            page.fullurl ||
+            `https://en.wikipedia.org/wiki/${encodeURIComponent(page.title)}`,
+        });
+      }
+    }
+
+    console.timeEnd('batchFetch');
+    console.log(
+      `Fetched ${articles.length} articles with images out of ${randomBatchSize} random articles.`
+    );
+
+    // Return only the requested number of articles
+    return articles.slice(0, count);
   } catch (error) {
-    console.error('Error fetching Wikipedia article:', error);
+    console.error('Error fetching Wikipedia articles in batch:', error);
     throw error;
   }
 };
 
 /**
- * Get a random Wikipedia article with an image
+ * Get a random Wikipedia article
+ * Note: This is kept for backward compatibility, but getRandomArticlesBatch
+ * should be used for better performance when possible
  */
-export const getRandomArticleWithImage = async (): Promise<Article> => {
-  let attempts = 0;
-  const maxAttempts = 10;
+export const getRandomArticle = async (): Promise<Article> => {
+  // Get a batch of 1 article
+  const articles = await getRandomArticlesBatch(1);
 
-  while (attempts < maxAttempts) {
-    attempts++;
-    const article = await getRandomArticle();
-
-    // If the article has a thumbnail, return it
-    if (article.thumbnail !== null) {
-      return article;
-    }
-
-    // Log that we're skipping an article without an image
-    console.log(`Skipping article without image: ${article.title}`);
+  if (articles.length === 0) {
+    throw new Error('Failed to get a random article with an image');
   }
 
-  // If we've made too many attempts without finding an article with an image
-  throw new Error(
-    'Failed to find an article with an image after multiple attempts'
-  );
+  return articles[0];
+};
+
+/**
+ * Get a random Wikipedia article with an image
+ * This is now just an alias for getRandomArticle since the batch function
+ * already filters for images
+ */
+export const getRandomArticleWithImage = async (): Promise<Article> => {
+  return getRandomArticle();
 };
 
 /**
  * Get multiple random Wikipedia articles, all with images
+ * This now uses the more efficient batch approach
  */
 export const getRandomArticles = async (
   count: number = 5
 ): Promise<Article[]> => {
   try {
-    const articles: Article[] = [];
-    const maxAttempts = count * 3; // Allow up to 3x the requested count in attempts
-    let attempts = 0;
+    // First try getting exactly what we need with the optimized batch method
+    let articles = await getRandomArticlesBatch(count);
 
-    // Continue fetching until we have enough articles with images
-    // or until we've made too many attempts
-    while (articles.length < count && attempts < maxAttempts) {
-      attempts++;
+    // If we didn't get enough articles, make additional requests as needed
+    if (articles.length < count) {
+      console.log(
+        `Only got ${articles.length} articles on first batch, fetching more...`
+      );
 
-      try {
-        const article = await getRandomArticle();
-
-        // Only add articles that have images
-        if (article.thumbnail !== null) {
-          articles.push(article);
-        }
-      } catch (error) {
-        console.error('Error fetching an article, continuing to next:', error);
-      }
+      // Fetch more to make up the difference
+      const additionalArticles = await getRandomArticlesBatch(
+        count - articles.length
+      );
+      articles = [...articles, ...additionalArticles];
     }
 
-    // If we couldn't get enough articles with images, return what we have
+    // In the unlikely case we still don't have enough articles, log a warning
     if (articles.length < count) {
       console.warn(
         `Could only find ${articles.length} articles with images out of ${count} requested`
       );
     }
+
     return articles;
   } catch (error) {
     console.error('Error fetching multiple Wikipedia articles:', error);

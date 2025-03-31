@@ -5,6 +5,13 @@ import ArticleCard from './components/ArticleCard';
 import Controls from './components/Controls';
 import LoadingIndicator from './components/LoadingIndicator';
 
+// Cache key for storing articles in sessionStorage
+const CACHE_KEY = 'wiktok_articles_cache';
+// Number of articles to fetch per batch
+const BATCH_SIZE = 10;
+// Prefetch when this many articles away from the end
+const PREFETCH_THRESHOLD = 3;
+
 function App() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -12,25 +19,64 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const scrollTimeoutRef = useRef<number | null>(null);
+  const isFetchingRef = useRef(false); // To prevent multiple concurrent fetches
 
-  // Load initial batch of articles
+  // Try loading cached articles on initial render
   useEffect(() => {
-    fetchArticles();
+    const loadCachedArticles = () => {
+      try {
+        const cachedData = sessionStorage.getItem(CACHE_KEY);
+        if (cachedData) {
+          const parsedData = JSON.parse(cachedData);
+          console.log(`Loaded ${parsedData.length} articles from cache`);
+          setArticles(parsedData);
+          setIsInitialLoad(false);
+          setLoading(false);
+          return true;
+        }
+      } catch (error) {
+        console.warn('Error loading from cache:', error);
+      }
+      return false;
+    };
+
+    // If we have cached articles, use them; otherwise fetch new ones
+    if (!loadCachedArticles()) {
+      fetchArticles();
+    }
   }, []);
+
+  // Save articles to cache whenever the article list changes
+  useEffect(() => {
+    if (articles.length > 0) {
+      try {
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify(articles));
+      } catch (error) {
+        console.warn('Error saving to cache:', error);
+      }
+    }
+  }, [articles]);
 
   // Fetch articles from API
   const fetchArticles = async () => {
+    // Prevent concurrent fetches
+    if (isFetchingRef.current) return;
+
     try {
+      isFetchingRef.current = true;
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/random/batch?count=5');
+      console.time('fetchArticles');
+      const response = await fetch(`/api/random/batch?count=${BATCH_SIZE}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status}`);
       }
 
       const data = await response.json();
+      console.timeEnd('fetchArticles');
+      console.log(`Fetched ${data.length} new articles`);
 
       // Add new articles to the end of the list
       setArticles((current) => [...current, ...data]);
@@ -46,13 +92,15 @@ function App() {
       );
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
   };
 
-  // Load more articles when we're 2 articles away from the end
+  // Load more articles when we're approaching the end
+  // More aggressive prefetching (3 articles before the end instead of 2)
   useEffect(() => {
     if (
-      currentIndex >= articles.length - 2 &&
+      currentIndex >= articles.length - PREFETCH_THRESHOLD &&
       !loading &&
       articles.length > 0
     ) {
@@ -96,7 +144,7 @@ function App() {
     };
   }, [goToNext, goToPrevious]);
 
-  // Handle mouse wheel scrolling
+  // Handle mouse wheel scrolling with improved debouncing
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       // Prevent default scrolling behavior
@@ -132,6 +180,14 @@ function App() {
       }
     };
   }, [goToNext, goToPrevious]);
+
+  // Clear cache when component unmounts (optional)
+  useEffect(() => {
+    return () => {
+      // uncomment to clear cache on component unmount
+      // sessionStorage.removeItem(CACHE_KEY);
+    };
+  }, []);
 
   if (error) {
     return (
@@ -188,27 +244,38 @@ function App() {
               width: '100%',
             }}
           >
-            {articles.map((article, index) => (
-              <div
-                key={`${article.id}-${index}`}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  transition: 'opacity 0.3s ease-in-out',
-                  opacity: currentIndex === index ? 1 : 0,
-                  pointerEvents: currentIndex === index ? 'auto' : 'none',
-                  backgroundColor: '#000',
-                }}
-              >
-                <ArticleCard
-                  article={article}
-                  isActive={currentIndex === index}
-                />
-              </div>
-            ))}
+            {/* Only render articles near the current index for better performance */}
+            {articles
+              .slice(
+                Math.max(0, currentIndex - 1),
+                Math.min(articles.length, currentIndex + 2)
+              )
+              .map((article, localIndex) => {
+                const globalIndex =
+                  currentIndex - Math.max(0, currentIndex - 1) + localIndex;
+                return (
+                  <div
+                    key={`${article.id}-${globalIndex}`}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      transition: 'opacity 0.3s ease-in-out',
+                      opacity: currentIndex === globalIndex ? 1 : 0,
+                      pointerEvents:
+                        currentIndex === globalIndex ? 'auto' : 'none',
+                      backgroundColor: '#000',
+                    }}
+                  >
+                    <ArticleCard
+                      article={article}
+                      isActive={currentIndex === globalIndex}
+                    />
+                  </div>
+                );
+              })}
           </div>
 
           <Controls
@@ -240,7 +307,7 @@ function App() {
         </>
       )}
 
-      {/* App header */}
+      {/* App header with article counter */}
       <header
         style={{
           position: 'fixed',
@@ -253,9 +320,21 @@ function App() {
           zIndex: 10,
           display: 'flex',
           justifyContent: 'center',
+          alignItems: 'center',
         }}
       >
         <h1 style={{ color: 'white', margin: 0, fontSize: '24px' }}>WikTok</h1>
+        {articles.length > 0 && (
+          <span
+            style={{
+              color: 'rgba(255, 255, 255, 0.7)',
+              fontSize: '14px',
+              marginLeft: '10px',
+            }}
+          >
+            {currentIndex + 1}/{articles.length}
+          </span>
+        )}
       </header>
     </div>
   );
