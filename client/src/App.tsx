@@ -15,11 +15,6 @@ function App() {
   const [articleSource, setArticleSource] = useState<ArticleSource>('random');
   const scrollTimeoutRef = useRef<number | null>(null);
 
-  // Load initial batch of articles
-  useEffect(() => {
-    fetchArticles(true);
-  }, [articleSource, fetchArticles]); // Reload when source changes
-
   // Fetch articles from API
   const fetchArticles = useCallback(
     async (resetArticles: boolean = false) => {
@@ -61,6 +56,11 @@ function App() {
     },
     [articleSource, isInitialLoad]
   );
+
+  // Load initial batch of articles
+  useEffect(() => {
+    fetchArticles(true);
+  }, [articleSource, fetchArticles]); // Reload when source changes
 
   // Load more articles when we're 2 articles away from the end
   useEffect(() => {
