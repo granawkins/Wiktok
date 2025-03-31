@@ -99,19 +99,64 @@ export const getRandomArticle = async (): Promise<Article> => {
 };
 
 /**
- * Get multiple random Wikipedia articles
+ * Get a random Wikipedia article with an image
+ */
+export const getRandomArticleWithImage = async (): Promise<Article> => {
+  let attempts = 0;
+  const maxAttempts = 10;
+
+  while (attempts < maxAttempts) {
+    attempts++;
+    const article = await getRandomArticle();
+
+    // If the article has a thumbnail, return it
+    if (article.thumbnail !== null) {
+      return article;
+    }
+
+    // Log that we're skipping an article without an image
+    console.log(`Skipping article without image: ${article.title}`);
+  }
+
+  // If we've made too many attempts without finding an article with an image
+  throw new Error(
+    'Failed to find an article with an image after multiple attempts'
+  );
+};
+
+/**
+ * Get multiple random Wikipedia articles, all with images
  */
 export const getRandomArticles = async (
   count: number = 5
 ): Promise<Article[]> => {
   try {
     const articles: Article[] = [];
+    const maxAttempts = count * 3; // Allow up to 3x the requested count in attempts
+    let attempts = 0;
 
-    // For simplicity, we'll make sequential requests
-    // In a production app, these could be parallelized for better performance
-    for (let i = 0; i < count; i++) {
-      const article = await getRandomArticle();
-      articles.push(article);
+    // Continue fetching until we have enough articles with images
+    // or until we've made too many attempts
+    while (articles.length < count && attempts < maxAttempts) {
+      attempts++;
+
+      try {
+        const article = await getRandomArticle();
+
+        // Only add articles that have images
+        if (article.thumbnail !== null) {
+          articles.push(article);
+        }
+      } catch (error) {
+        console.error('Error fetching an article, continuing to next:', error);
+      }
+    }
+
+    // If we couldn't get enough articles with images, return what we have
+    if (articles.length < count) {
+      console.warn(
+        `Could only find ${articles.length} articles with images out of ${count} requested`
+      );
     }
 
     return articles;

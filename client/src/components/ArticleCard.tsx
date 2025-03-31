@@ -58,20 +58,30 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
             height: '100%',
             zIndex: 0,
             backgroundColor: '#000', // Dark background for areas not covered by image
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
+            overflow: 'hidden', // Ensure content stays within bounds
           }}
         >
-          <img
-            src={article.thumbnail}
-            alt={article.title}
+          <div
             style={{
-              maxWidth: '100%',
-              maxHeight: '100%',
-              objectFit: 'contain', // Changed from 'cover' to 'contain' to show full image
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
             }}
-          />
+          >
+            <img
+              src={article.thumbnail}
+              alt={article.title}
+              style={{
+                width: 'auto',
+                height: 'auto',
+                maxWidth: '100%',
+                maxHeight: '100%',
+                objectFit: 'contain', // Show the full image without cropping
+              }}
+            />
+          </div>
         </div>
       )}
 
