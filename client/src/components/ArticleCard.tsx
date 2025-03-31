@@ -18,6 +18,21 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
       ? `${article.extract.substring(0, 300)}...`
       : article.extract;
 
+  // Handle source with default value for backward compatibility
+  const source = article.source || 'random';
+
+  // Badge colors based on article source
+  const badgeColors = {
+    trending: {
+      background: 'rgba(255, 64, 129, 0.8)',
+      text: 'white',
+    },
+    random: {
+      background: 'rgba(33, 150, 243, 0.8)',
+      text: 'white',
+    },
+  };
+
   return (
     <div
       className={`article-card ${isActive ? 'active' : ''}`}
@@ -33,7 +48,7 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
         transition: 'opacity 0.3s ease-in-out',
       }}
     >
-      {/* Background image (no gradient overlay) */}
+      {/* Background image with gradient overlay */}
       {article.thumbnail && (
         <div
           style={{
@@ -59,6 +74,52 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
         </div>
       )}
 
+      {/* Gradient overlay for better readability */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background:
+            'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.3) 100%)',
+          zIndex: 1,
+        }}
+      />
+
+      {/* Source badge (trending/random) */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '15px',
+          right: '15px',
+          zIndex: 3,
+          padding: '4px 12px',
+          borderRadius: '16px',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          textTransform: 'uppercase',
+          background:
+            badgeColors[source as keyof typeof badgeColors].background,
+          color: badgeColors[source as keyof typeof badgeColors].text,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+        }}
+      >
+        {source === 'trending' ? (
+          <>
+            <span>🔥 Trending</span>
+            {article.rank !== undefined && (
+              <span style={{ fontSize: '10px' }}>#{article.rank}</span>
+            )}
+          </>
+        ) : (
+          <>✨ Discover</>
+        )}
+      </div>
+
       {/* Content with its own background for readability */}
       <div
         style={{
@@ -76,6 +137,24 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
         <h2 style={{ marginBottom: '10px', fontSize: '24px' }}>
           {article.title}
         </h2>
+
+        {/* Views counter for trending articles */}
+        {article.views !== undefined && source === 'trending' && (
+          <div
+            style={{
+              fontSize: '14px',
+              color: 'rgba(255, 255, 255, 0.7)',
+              marginBottom: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+            }}
+          >
+            <span>👁️</span>
+            <span>{article.views.toLocaleString()} views yesterday</span>
+          </div>
+        )}
+
         <p style={{ fontSize: '16px', lineHeight: '1.5' }}>{extractPreview}</p>
 
         {article.extract.length > 300 && (

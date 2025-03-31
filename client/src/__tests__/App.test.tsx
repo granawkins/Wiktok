@@ -11,6 +11,7 @@ const mockArticles: Article[] = [
     extract: 'This is the first test article content',
     thumbnail: 'https://example.com/image1.jpg',
     url: 'https://en.wikipedia.org/wiki/Test_Article_1',
+    source: 'random',
   },
   {
     id: 2,
@@ -18,6 +19,7 @@ const mockArticles: Article[] = [
     extract: 'This is the second test article content',
     thumbnail: null,
     url: 'https://en.wikipedia.org/wiki/Test_Article_2',
+    source: 'random',
   },
 ];
 
@@ -58,7 +60,9 @@ describe('App Component', () => {
       expect(screen.getByText('Test Article 1')).toBeInTheDocument();
     });
 
-    expect(globalThis.fetch).toHaveBeenCalledWith('/api/random/batch?count=5');
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/api/articles?source=random&count=5&requireThumbnail=true&minExtractLength=200'
+    );
   });
 
   it('handles API error', async () => {
