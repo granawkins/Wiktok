@@ -67,7 +67,7 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
             style={{
               width: '100%',
               height: '100%',
-              objectFit: 'cover', // Fill entire container while maintaining aspect ratio
+              objectFit: 'contain', // Fill entire container while maintaining aspect ratio
             }}
           />
         </div>
