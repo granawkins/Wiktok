@@ -28,7 +28,7 @@ app.get('/api/random', async (req: Request, res: Response) => {
     if (requireImage) {
       // Import the getRandomArticleWithImage function from wikipediaService
       const { getRandomArticleWithImage } = await import(
-        './services/wikipediaService'
+        './services/wikipediaService.js'
       );
       const article = await getRandomArticleWithImage();
       res.json(article);
