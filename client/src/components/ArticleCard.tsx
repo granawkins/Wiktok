@@ -61,27 +61,15 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
             overflow: 'hidden', // Ensure content stays within bounds
           }}
         >
-          <div
+          <img
+            src={article.thumbnail}
+            alt={article.title}
             style={{
               width: '100%',
               height: '100%',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
+              objectFit: 'cover', // Fill entire container while maintaining aspect ratio
             }}
-          >
-            <img
-              src={article.thumbnail}
-              alt={article.title}
-              style={{
-                width: 'auto',
-                height: 'auto',
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain', // Show the full image without cropping
-              }}
-            />
-          </div>
+          />
         </div>
       )}
 
