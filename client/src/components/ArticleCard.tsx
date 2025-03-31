@@ -4,13 +4,37 @@ import { Article } from '../types';
 interface ArticleCardProps {
   article: Article;
   isActive: boolean;
+  onLikeToggle?: (articleId: number, isLiked: boolean) => Promise<void>;
 }
 
-const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
+const ArticleCard = ({ article, isActive, onLikeToggle }: ArticleCardProps) => {
   const [expanded, setExpanded] = useState(false);
+  const [isLiked, setIsLiked] = useState(article.isLiked || false);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
 
   const toggleExpanded = () => {
     setExpanded(!expanded);
+  };
+
+  const handleLikeToggle = async () => {
+    if (!onLikeToggle || isLikeLoading) return;
+
+    setIsLikeLoading(true);
+
+    try {
+      // Update the local state optimistically
+      const newLikeState = !isLiked;
+      setIsLiked(newLikeState);
+
+      // Call the parent handler to update the backend
+      await onLikeToggle(article.id, newLikeState);
+    } catch (error) {
+      // Revert on error
+      console.error('Error toggling like:', error);
+      setIsLiked(isLiked);
+    } finally {
+      setIsLikeLoading(false);
+    }
   };
 
   const extractPreview =
@@ -59,6 +83,35 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
         </div>
       )}
 
+      {/* Like button (positioned in top-right corner) */}
+      <button
+        onClick={handleLikeToggle}
+        disabled={isLikeLoading}
+        style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          zIndex: 10,
+          background: 'rgba(0, 0, 0, 0.5)',
+          border: 'none',
+          borderRadius: '50%',
+          width: '50px',
+          height: '50px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '24px',
+          color: isLiked ? '#ff4057' : '#FFFFFF',
+          cursor: isLikeLoading ? 'wait' : 'pointer',
+          transition: 'transform 0.2s, color 0.2s',
+          transform: isLiked ? 'scale(1.1)' : 'scale(1)',
+          opacity: isActive ? 1 : 0,
+        }}
+        aria-label={isLiked ? 'Unlike article' : 'Like article'}
+      >
+        {isLikeLoading ? '...' : '❤'}
+      </button>
+
       {/* Content with its own background for readability */}
       <div
         style={{
@@ -94,7 +147,15 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
           </button>
         )}
 
-        <div style={{ marginTop: '15px' }}>
+        <div
+          style={{
+            marginTop: '15px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            flexWrap: 'wrap',
+          }}
+        >
           <a
             href={article.url}
             target="_blank"
@@ -111,6 +172,29 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
           >
             Read on Wikipedia
           </a>
+
+          {/* Mobile-friendly like button that appears in content area */}
+          <button
+            onClick={handleLikeToggle}
+            disabled={isLikeLoading}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              background: isLiked
+                ? 'rgba(255, 64, 87, 0.2)'
+                : 'rgba(255, 255, 255, 0.2)',
+              border: 'none',
+              color: isLiked ? '#ff4057' : 'white',
+              padding: '8px 15px',
+              borderRadius: '20px',
+              fontSize: '14px',
+              cursor: isLikeLoading ? 'wait' : 'pointer',
+            }}
+          >
+            <span style={{ fontSize: '16px' }}>❤</span>
+            {isLiked ? 'Liked' : 'Like'}
+          </button>
         </div>
       </div>
     </div>

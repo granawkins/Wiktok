@@ -11,11 +11,13 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [likeProcessing, setLikeProcessing] = useState(false);
   const scrollTimeoutRef = useRef<number | null>(null);
 
   // Load initial batch of articles
   useEffect(() => {
     fetchArticles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch articles from API
@@ -49,6 +51,49 @@ function App() {
     }
   };
 
+  // Handle like/unlike for an article
+  const handleLikeToggle = async (
+    articleId: number,
+    isLiked: boolean
+  ): Promise<void> => {
+    if (likeProcessing) return;
+
+    try {
+      setLikeProcessing(true);
+
+      // Make API call to like/unlike the article
+      const endpoint = `/api/articles/${articleId}/like`;
+      const method = isLiked ? 'POST' : 'DELETE';
+
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+
+      const updatedArticle = await response.json();
+
+      // Update the article in the state
+      setArticles((currentArticles) =>
+        currentArticles.map((article) =>
+          article.id === articleId
+            ? { ...article, isLiked: updatedArticle.isLiked }
+            : article
+        )
+      );
+    } catch (error) {
+      console.error('Error toggling like status:', error);
+      throw error; // Re-throw to let ArticleCard handle the error
+    } finally {
+      setLikeProcessing(false);
+    }
+  };
+
   // Load more articles when we're 2 articles away from the end
   useEffect(() => {
     if (
@@ -58,6 +103,7 @@ function App() {
     ) {
       fetchArticles();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex, articles.length, loading]);
 
   // Handle navigation
@@ -206,6 +252,7 @@ function App() {
                 <ArticleCard
                   article={article}
                   isActive={currentIndex === index}
+                  onLikeToggle={handleLikeToggle}
                 />
               </div>
             ))}
