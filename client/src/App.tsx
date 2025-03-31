@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSwipeable } from 'react-swipeable';
 import { Article } from './types';
 import ArticleCard from './components/ArticleCard';
@@ -11,6 +11,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const scrollTimeoutRef = useRef<number | null>(null);
 
   // Load initial batch of articles
   useEffect(() => {
@@ -88,6 +89,43 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [goToNext, goToPrevious]);
+
+  // Handle mouse wheel scrolling
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      // Prevent default scrolling behavior
+      e.preventDefault();
+      
+      // Clear any existing timeout
+      if (scrollTimeoutRef.current !== null) {
+        window.clearTimeout(scrollTimeoutRef.current);
+      }
+      
+      // Debounce scroll events to prevent rapid navigation
+      scrollTimeoutRef.current = window.setTimeout(() => {
+        // deltaY > 0 means scrolling down
+        if (e.deltaY > 0) {
+          goToNext();
+        } 
+        // deltaY < 0 means scrolling up
+        else if (e.deltaY < 0) {
+          goToPrevious();
+        }
+        
+        scrollTimeoutRef.current = null;
+      }, 100); // 100ms debounce time
+    };
+    
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+      // Clear any existing timeout on component unmount
+      if (scrollTimeoutRef.current !== null) {
+        window.clearTimeout(scrollTimeoutRef.current);
+      }
     };
   }, [goToNext, goToPrevious]);
 
