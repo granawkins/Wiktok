@@ -43,6 +43,8 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
             width: '100%',
             height: '100%',
             zIndex: 0,
+            backgroundColor: '#000', // Dark background for areas not covered by image
+            overflow: 'hidden', // Ensure content stays within bounds
           }}
         >
           <img
@@ -51,7 +53,7 @@ const ArticleCard = ({ article, isActive }: ArticleCardProps) => {
             style={{
               width: '100%',
               height: '100%',
-              objectFit: 'cover',
+              objectFit: 'contain', // Fill entire container while maintaining aspect ratio
             }}
           />
         </div>
