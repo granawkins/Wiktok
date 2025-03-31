@@ -23,8 +23,19 @@ app.get('/api', (req: Request, res: Response) => {
 // Get a random Wikipedia article
 app.get('/api/random', async (req: Request, res: Response) => {
   try {
-    const article = await getRandomArticle();
-    res.json(article);
+    const requireImage = req.query.requireImage === 'true';
+
+    if (requireImage) {
+      // Import the getRandomArticleWithImage function from wikipediaService
+      const { getRandomArticleWithImage } = await import(
+        './services/wikipediaService.js'
+      );
+      const article = await getRandomArticleWithImage();
+      res.json(article);
+    } else {
+      const article = await getRandomArticle();
+      res.json(article);
+    }
   } catch (error) {
     console.error('Error handling /api/random request:', error);
     res.status(500).json({
